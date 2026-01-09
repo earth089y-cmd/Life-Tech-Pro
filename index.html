@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Tech Pro - Full Screen</title>
+
+    <style>
+        /* ----------------- 1. SETTINGS ----------------- */
+        :root{ --green-500: #10b981; --dark-900: #0f172a; --app-bg: #020617; --red-500: #ef4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* ปรับ body ให้เต็มจอ */
+        body { 
+            font-family: "Segoe UI", sans-serif; 
+            background: #384042; 
+            margin: 0; 
+            padding: 0; /* ลบ padding ออก */
+            height: 100vh; /* ความสูงเต็มจอ */
+            width: 100vw; /* ความกว้างเต็มจอ */
+            overflow: hidden; /* ซ่อน Scrollbar ของ body (ให้เลื่อนใน main-content แทน) */
+            display: flex;
+        }
+
+        /* ปรับกรอบแอปให้เต็มจอ 100% */
+        .app-container { 
+            width: 100%; 
+            height: 100%; 
+            background: var(--app-bg); 
+            border-radius: 0; /* ลบความมนมุมออกเพื่อให้แนบสนิท */
+            display: flex; 
+            position: relative; 
+            box-shadow: none; /* ไม่ต้องมีเงาเพราะเต็มจอแล้ว */
+        }
+
+        /* ----------------- 2. SIDEBAR ----------------- */
+        .sidebar { width: 220px; background: var(--green-500); padding: 22px 14px; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; gap: 10px; height: 100%; }
+        .sidebar-menu-title { color: var(--dark-900); font-weight: 800; margin-bottom: 8px; font-size: 18px; }
+        .menu-item { background: rgba(255, 255, 255, 0.18); color: var(--dark-900); padding: 10px 12px; margin-bottom: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.18s, transform 0.12s; display: block; }
+        .menu-item:hover { background: rgba(255, 255, 255, 0.35); transform: translateY(-2px); }
+        .menu-item.active { background: var(--dark-900); color: var(--green-500); box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+        .menu-item.coming-soon-label { background: rgba(255,255,255,0.08); opacity: 0.85; }
+        .menu-item.coming-soon-label:hover { opacity: 1; }
+        .sidebar-icon-bottom { text-align: center; margin-top: 6px; font-size: 28px; color: var(--dark-900); cursor: pointer; }
+
+        /* ----------------- 3. MAIN CONTENT ----------------- */
+        .main-content { 
+            flex-grow: 1; 
+            background: var(--app-bg); 
+            padding: 20px; 
+            position: relative; 
+            height: 100%; /* สูงเต็มพื้นที่ */
+            overflow-y: auto; /* ให้เลื่อนเฉพาะส่วนเนื้อหา */
+        }
+        .logo-box-main { padding: 6px 0; z-index: 1; }
+        .logo-text { font-size: 28px; font-weight: 900; color: var(--dark-900); margin-bottom: 6px; }
+        .logo-line-header { height: 3px; background: var(--dark-900); margin-bottom: 6px; border-radius: 5px; width: 120px; }
+        .top-header { background: rgba(229, 231, 235, 0.95); border-radius: 12px; padding: 18px; margin-bottom: 26px; display: flex; align-items: flex-start; position: relative; overflow: hidden; }
+        .menu-buttons-main { display: flex; gap: 14px; margin-left: auto; z-index: 1; padding-top: 3px; }
+        .menu-btn, .top-label { width: 140px; background: var(--green-500); border-radius: 14px; padding: 10px 6px; text-align: center; color: var(--dark-900); font-weight: 700; position: relative; box-shadow: 0 8px 18px rgba(0,0,0,.25); line-height: 1.2; cursor: pointer; transition: transform 0.16s, box-shadow 0.16s; display: block; }
+        .menu-btn:hover, .top-label:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,.35); }
+
+        .cart-badge {
+            position: absolute; top: -5px; right: -5px; background: #ef4444; color: white;
+            border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex;
+            justify-content: center; align-items: center; border: 2px solid white; display: none;
+        }
+
+        /* ----------------- MODAL STYLES ----------------- */
+        #cart-toggle, #track-toggle, #contact-toggle, #settings-toggle, #coming-soon-toggle { display: none; }
+        .app-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.82); z-index: 50; display: none; justify-content: center; align-items: center; padding: 20px; }
+        
+        #cart-toggle:checked ~ .delivery-modal,
+        #track-toggle:checked ~ .track-modal,
+        #contact-toggle:checked ~ .contact-modal,
+        #settings-toggle:checked ~ .settings-modal,
+        #coming-soon-toggle:checked ~ .coming-soon-modal { display: flex; }
+
+        .modal-content { background: #e5e7eb; color: var(--dark-900); padding: 26px; border-radius: 12px; width: 500px; max-height: 90%; overflow-y: auto; box-shadow: 0 15px 25px rgba(0,0,0,0.85); }
+        .modal-content.wide { width: 650px; }
+        .modal-content h3 { margin-bottom: 14px; color: var(--green-500); text-align: center; }
+        .close-btn { float: right; font-size: 24px; font-weight: bold; cursor: pointer; color: var(--dark-900); }
+        .modal-content.contact-style { border-top: 5px solid var(--green-500); }
+        .modal-content.coming-soon-style { background: #fef3c7; border: 3px solid #d97706; text-align: center; }
+        .modal-content.coming-soon-style h3 { color: #d97706; font-size: 22px; }
+        .line-add-btn { background: #06c755; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 12px; margin-left: 10px; }
+
+        /* ----------------- FORM & CART STYLES ----------------- */
+        .form-section-title { font-size: 16px; font-weight: 700; margin: 20px 0 10px 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #4b5563; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; }
+        
+        .payment-options { display: flex; gap: 15px; margin-bottom: 15px; }
+        .payment-option { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; background: white; transition: all 0.2s; }
+        .payment-option:hover { border-color: var(--green-500); background: #ecfdf5; }
+        .payment-option input { display: none; }
+        .payment-option.selected { background: var(--green-500); color: white; border-color: var(--green-500); }
+
+        .submit-btn { display: block; width: 100%; padding: 12px; background: #f97316; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 14px; transition: background 0.22s; }
+        .submit-btn:hover { background: #ea580c; }
+
+        .cart-list-section { border: 1px solid #ccc; border-radius: 8px; padding: 14px; margin-bottom: 10px; background: #f3f4f6; max-height: 200px; overflow-y: auto; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dotted #d1d5db; }
+        .cart-item:last-child { border-bottom: none; }
+        .delete-btn { color: #ef4444; cursor: pointer; font-size: 18px; padding: 5px; transition: transform 0.2s; }
+        .delete-btn:hover { transform: scale(1.2); }
+        .cart-total { text-align: right; font-size: 20px; font-weight: 800; margin-top: 10px; color: var(--dark-900); }
+        .birthday-promo { background: #f97316; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-weight: 700; font-size: 14px; border: 3px solid #ea580c; }
+
+        .info-line { padding: 10px 0; border-bottom: 1px solid #ccc; font-size: 15px; display:flex; align-items:center; gap:10px; }
+        .info-icon { font-size: 20px; }
+        .track-status { padding: 10px; background: #dbeafe; border-radius: 8px; border: 1px solid #93c5fd; margin-top: 10px;}
+        .progress-bar { background: #bfdbfe; height: 10px; border-radius: 6px; overflow: hidden; margin-top: 5px;}
+        .progress-bar div { height: 100%; background: #3b82f6; border-radius: 6px; width: 75%; }
+
+        /* ----------------- 4. PRODUCTS ----------------- */
+        .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 10px 0; margin-bottom: 30px; }
+        .product-card { width: 100%; background: white; border-radius: 10px; border: 2px solid var(--green-500); overflow: hidden; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.12); display: flex; flex-direction: column; transition: transform 0.3s ease; }
+        .product-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(16, 185, 129, 0.25); border-color: #34d399; }
+        .badge-hot { position: absolute; top: 10px; right: -6px; background: #ef4444; color: white; padding: 4px 14px 4px 10px; font-size: 13px; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; border-radius: 6px; }
+        .product-img { height: 150px; background-size: contain; background-position: center; background-repeat: no-repeat; background-color: white; transition: transform 0.5s ease; }
+        .product-card:hover .product-img { transform: scale(1.08); }
+        
+        .product-img.img-1 { background-image: url('https://image.made-in-china.com/202f0j00CjgEABTKZHUe/2020-Customized-Fashion-Sneakers-Women-and-Ladies-Casual-Sport-Running-Shoe.webp'); }
+        .product-img.img-2 { background-image: url('https://image.made-in-china.com/251f0j00cfaRAdqbbthv/made-in-china.jpg'); }
+        .product-img.img-3 { background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStzde_KzPGZdzP9wNCOjIY26zj4W5iIG7J4g&s'); }
+        .product-img.img-4 { background-image: url('https://st.bigc-cs.com/cdn-cgi/image/format=webp,quality=90/public/media/catalog/product/61/88/8859726905661/8859726905661_1-20240926112129-.jpg'); }
+        .product-img.img-5 { background-image: url('https://th.mlb-korea.com/cdn/shop/files/8800243881105_02_REV_JPG.jpg?v=1733891035'); }
+        .product-img.img-6 { background-image: url('https://shoplineimg.com/57ff39d96170695338f65200/668fde761cef090016b74495/800x.png?'); }
+        .product-img.img-7 { background-image: url('https://i.ebayimg.com/images/g/PlAAAOSwtXFmohCK/s-l400.png'); }
+        .product-img.img-8 { background-image: url('https://img.91app.com/webapi/imagesV3/Original/SalePage/7595001/4/638557993098430000?v=1&quality=30'); }
+
+        .price-bar { background: var(--green-500); color: #fff; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 800; margin-top: auto; }
+        .add-to-cart-btn { font-size: 26px; cursor: pointer; transition: transform 0.16s; background: none; border: none; }
+        .add-to-cart-btn:hover { transform: scale(1.15); }
+
+        .toast-box {
+            position: fixed; bottom: 30px; right: 30px; background: #10b981; color: #0f172a;
+            padding: 15px 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-weight: bold; transform: translateY(100px); opacity: 0; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 1000; display: flex; align-items: center; gap: 10px; border: 2px solid #fff;
+        }
+        .toast-box.show { transform: translateY(0); opacity: 1; }
+
+        @media (max-width: 1100px) { .product-grid { grid-template-columns: repeat(3, 1fr); } .sidebar { width: 170px; } }
+        @media (max-width: 820px) { .app-container { flex-direction: column; min-height: auto; } .sidebar { width: 100%; flex-direction: row; gap: 10px; padding: 12px; overflow-x: auto; } .main-content { padding: 14px; } .product-grid { grid-template-columns: repeat(2, 1fr); } .menu-buttons-main { gap: 8px; } }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div>
+                <div class="sidebar-menu-title">Life Tech Pro</div>
+                <div class="sidebar-menu">
+                    <div class="menu-item active">✨ สินค้าใหม่ล่าสุด</div>
+                    <label for="coming-soon-toggle" class="menu-item coming-soon-label">🔥 โปรโมชั่นพิเศษ</label>
+                    <label for="coming-soon-toggle" class="menu-item coming-soon-label">👟 รองเท้าผ้าใบ</label>
+                    <label for="coming-soon-toggle" class="menu-item coming-soon-label">🥾 รองเท้าบูท</label>
+                    <label for="coming-soon-toggle" class="menu-item coming-soon-label">⌚ อุปกรณ์ Gadget</label>
+                    <label for="settings-toggle" class="menu-item">⚙️ การตั้งค่า</label>
+                </div>
+            </div>
+            <div class="sidebar-icon-bottom">🏠</div> 
+        </div>
+
+        <div class="main-content">
+            <input type="checkbox" id="cart-toggle">
+            <input type="checkbox" id="track-toggle">
+            <input type="checkbox" id="contact-toggle">
+            <input type="checkbox" id="settings-toggle">
+            <input type="checkbox" id="coming-soon-toggle">
+
+            <div class="top-header">
+                <div class="logo-box-main">
+                    <div class="logo-text">LOGO</div>
+                    <div class="logo-line-header"></div>
+                    <div class="logo-line-header" style="width: 90%;"></div>
+                    <div class="logo-line-header" style="width: 60%;"></div>
+                </div>
+                <div class="menu-buttons-main">
+                    <label for="cart-toggle" class="top-label" style="position: relative;">
+                        <div class="icon">🛒</div><div>สินค้า</div>
+                        <div class="cart-badge" id="cart-badge">0</div>
+                    </label>
+                    <label for="track-toggle" class="top-label"><div class="icon map">📍</div><div>ติดตาม</div></label>
+                    <label for="contact-toggle" class="top-label"><div class="icon">👤</div><div>ติดต่อ</div></label>
+                </div>
+            </div>
+
+            <div class="app-modal delivery-modal">
+                <div class="modal-content wide">
+                    <label for="cart-toggle" class="close-btn">&times;</label>
+                    <h3>🛒 ตะกร้าสินค้าของคุณ</h3>
+                    <div class="birthday-promo">🎂 ลดทันที 50% หากวันนี้วันเกิด (แสดงบัตรใน LINE)</div>
+
+                    <div class="cart-list-section" id="cart-list-container">
+                        <p style="text-align:center; color:#666; padding:20px;">ยังไม่มีสินค้าในตะกร้า</p>
+                    </div>
+                    <div class="cart-total">ยอดรวม: <span id="cart-total-price">0</span> บาท</div>
+
+                    <form onsubmit="handleCheckout(event)" style="margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px;">
+                        <div class="form-section-title">🚚 ข้อมูลการจัดส่ง</div>
+                        <div class="form-group">
+                            <label>ชื่อ-นามสกุล ผู้รับ:</label>
+                            <input type="text" id="cust-name" placeholder="ระบุชื่อผู้รับ" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ที่อยู่จัดส่ง:</label>
+                            <textarea id="cust-address" rows="2" placeholder="บ้านเลขที่, ถนน, แขวง/ตำบล..." required></textarea>
+                        </div>
+
+                        <div class="form-section-title">💰 ช่องทางการชำระเงิน</div>
+                        <div class="payment-options">
+                            <label class="payment-option selected" onclick="selectPayment(this)">
+                                <input type="radio" name="payment" value="transfer" checked>
+                                📱 โอนเงิน/QR
+                            </label>
+                            <label class="payment-option" onclick="selectPayment(this)">
+                                <input type="radio" name="payment" value="cod">
+                                🚚 เก็บปลายทาง
+                            </label>
+                        </div>
+
+                        <button type="submit" class="submit-btn">ยืนยันการสั่งซื้อ</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="app-modal track-modal">
+                <div class="modal-content">
+                    <label for="track-toggle" class="close-btn">&times;</label>
+                    <h3>📍 ติดตามสถานะ</h3>
+                    <div class="form-group"><input type="text" placeholder="เลขพัสดุ... (เช่น ABC1234)"></div>
+                    <div class="track-status"><p>สถานะ: กำลังขนส่ง</p><div class="progress-bar"><div></div></div></div>
+                    <div class="info-line"><span class="info-icon">🚚</span> ถึงศูนย์คัดแยกสินค้าหลัก (TH Hub)</div>
+                    <button class="submit-btn" style="background:#3b82f6;">ตรวจสอบ</button>
+                </div>
+            </div>
+
+            <div class="app-modal contact-modal">
+                <div class="modal-content contact-style">
+                    <label for="contact-toggle" class="close-btn">&times;</label>
+                    <h3>📞 ช่องทางการติดต่อ</h3>
+                    <div class="info-line"><span class="info-icon">☎️</span><strong>เบอร์โทร:</strong> 081-999-9999</div>
+                    <div class="info-line">
+                        <span class="info-icon">🆔</span><strong>LINE:</strong> @LifeTech_Support 
+                        <a href="#" class="line-add-btn">แอดเลย</a>
+                    </div>
+                    <div class="info-line"><span class="info-icon">f</span><strong>Facebook:</strong> LifeTechPro</div>
+                    <h4 style="margin-top: 15px;">ข้อความถึงแอดมิน:</h4>
+                    <textarea rows="3" placeholder="พิมพ์ข้อความ..." style="width:100%; margin-top:5px; padding:10px;"></textarea>
+                    <button class="submit-btn" style="background:#ef4444;">ส่งข้อความ</button>
+                </div>
+            </div>
+
+            <div class="app-modal settings-modal">
+                <div class="modal-content">
+                    <label for="settings-toggle" class="close-btn">&times;</label>
+                    <h3>⚙️ ตั้งค่า</h3>
+                    <div class="info-line">ภาษา: ไทย (TH)</div>
+                    <div class="info-line">แจ้งเตือน: เปิด</div>
+                    <button class="submit-btn" style="background:#6b7280;">จัดการบัญชี</button>
+                    <button class="submit-btn" style="background:#dc2626;">ออกจากระบบ</button>
+                </div>
+            </div>
+
+            <div class="app-modal coming-soon-modal">
+                <div class="modal-content coming-soon-style">
+                    <label for="coming-soon-toggle" class="close-btn">&times;</label>
+                    <h3>🚧 เร็วๆ นี้</h3>
+                    <p>ฟังก์ชันนี้กำลังอยู่ระหว่างการพัฒนา</p>
+                </div>
+            </div>
+
+            <div class="product-grid">
+                <div class="product-card"><div class="badge-hot">Hot</div><div class="product-img img-1"></div><div class="price-bar"><span>599</span><button class="add-to-cart-btn" data-name="รองเท้าผ้าใบสีน้ำตาล" data-price="599">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">Hot</div><div class="product-img img-2"></div><div class="price-bar"><span>699</span><button class="add-to-cart-btn" data-name="รองเท้าผ้าใบสีขาว" data-price="699">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">Hot</div><div class="product-img img-3"></div><div class="price-bar"><span>999</span><button class="add-to-cart-btn" data-name="รองเท้าวิ่งสีดำ" data-price="999">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">Hot</div><div class="product-img img-4"></div><div class="price-bar"><span>1,199</span><button class="add-to-cart-btn" data-name="รองเท้าแฟชั่นเทา" data-price="1199">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">New</div><div class="product-img img-5"></div><div class="price-bar"><span>1,299</span><button class="add-to-cart-btn" data-name="MLB Big Ball" data-price="1299">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">New</div><div class="product-img img-6"></div><div class="price-bar"><span>1,599</span><button class="add-to-cart-btn" data-name="รองเท้าผ้าใบ Navy" data-price="1599">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">New</div><div class="product-img img-7"></div><div class="price-bar"><span>1,899</span><button class="add-to-cart-btn" data-name="Sneaker Limited" data-price="1899">🛒</button></div></div>
+                <div class="product-card"><div class="badge-hot">New</div><div class="product-img img-8"></div><div class="price-bar"><span>2,099</span><button class="add-to-cart-btn" data-name="Sport Run Pro" data-price="2099">🛒</button></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast-box">✅ เพิ่มลงตะกร้าแล้ว!</div>
+
+    <script>
+        let cart = [];
+
+        // 1. เพิ่มสินค้า
+        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const name = btn.getAttribute('data-name');
+                const price = parseInt(btn.getAttribute('data-price'));
+                cart.push({ name, price });
+                updateCartDisplay();
+                showToast(`เพิ่ม "${name}" แล้ว!`);
+            });
+        });
+
+        // 2. อัปเดตหน้าตะกร้า (Dynamic)
+        function updateCartDisplay() {
+            const container = document.getElementById('cart-list-container');
+            const totalEl = document.getElementById('cart-total-price');
+            const badge = document.getElementById('cart-badge');
+            
+            container.innerHTML = '';
+            let total = 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">ยังไม่มีสินค้าในตะกร้า</p>';
+                badge.style.display = 'none';
+            } else {
+                badge.style.display = 'flex';
+                badge.innerText = cart.length;
+                cart.forEach((item, index) => {
+                    total += item.price;
+                    container.innerHTML += `
+                        <div class="cart-item">
+                            <span class="cart-item-name" style="font-weight:bold;">${item.name}</span>
+                            <span>${item.price.toLocaleString()}</span>
+                            <span class="delete-btn" onclick="removeItem(${index})">🗑️</span>
+                        </div>
+                    `;
+                });
+            }
+            totalEl.innerText = total.toLocaleString();
+        }
+
+        // 3. ลบสินค้า
+        window.removeItem = function(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+        }
+
+        // 4. เลือกวิธีชำระเงิน (Visual)
+        window.selectPayment = function(element) {
+            document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+        }
+
+        // 5. จัดการการสั่งซื้อ (Checkout Logic)
+        window.handleCheckout = function(e) {
+            e.preventDefault();
+            if (cart.length === 0) {
+                alert('กรุณาเลือกสินค้าก่อนสั่งซื้อ!');
+                return;
+            }
+            const name = document.getElementById('cust-name').value;
+            const payType = document.querySelector('input[name="payment"]:checked').value;
+            let payTxt = payType === 'transfer' ? 'โอนเงิน' : 'เก็บปลายทาง';
+            
+            alert(`✅ สั่งซื้อสำเร็จ!\n\nคุณ: ${name}\nชำระโดย: ${payTxt}\nยอดเงิน: ${document.getElementById('cart-total-price').innerText} บาท\n\nขอบคุณที่ใช้บริการครับ!`);
+            
+            // รีเซ็ตหลังสั่งซื้อเสร็จ
+            cart = [];
+            updateCartDisplay();
+            document.getElementById('cart-toggle').checked = false;
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-address').value = '';
+        }
+
+        // 6. แจ้งเตือน (Toast)
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = '✅ ' + msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+    </script>
+</body>
+</html>
